@@ -1,0 +1,12 @@
+[package]
+name = "projet"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.13"  # La dernière version de Bevy
+rand = "0.8"    # Pour la génération procédurale
+noise = "0.8"   # Pour le terrain avec bruit de Perlin
+voronoi = "0.1" # Pour la génération des quartiers
+
+
