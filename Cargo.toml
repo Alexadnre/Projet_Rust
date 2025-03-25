@@ -1,12 +1,12 @@
 [package]
-name = "projet"
+name = "hexagonal_terrain"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.15.3"  
-rand = "0.9.0"   
-noise = "0.9.0"  
+bevy = "0.10"
+rand = "0.9.0"
+noise = "0.9.0"
 voronoi = "0.1"
 
 
