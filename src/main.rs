@@ -83,20 +83,20 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
                 let transformed_vertex = position + rotation.mul_vec3(vertex_pos);
                 red_points.push(transformed_vertex);
 
-                // Spawn red points
-                commands.spawn((
-                    PointLightBundle {
-                        point_light: PointLight {
-                            intensity: 10.0,
-                            color: Color::rgb(1.0, 0.0, 0.0),
-                            range: 5.0,
-                            ..default()
-                        },
-                        transform: Transform::from_translation(transformed_vertex),
-                        ..default()
-                    },
-                    TriangleVertex
-                ));
+                // // Spawn red points
+                // commands.spawn((
+                //     PointLightBundle {
+                //         point_light: PointLight {
+                //             intensity: 1.0,
+                //             color: Color::rgb(1.0, 0.0, 0.0),
+                //             range: 5.0,
+                //             ..default()
+                //         },
+                //         transform: Transform::from_translation(transformed_vertex),
+                //         ..default()
+                //     },
+                //     TriangleVertex
+                // ));
             }
         }
     }
@@ -239,19 +239,19 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
             for vertex_pos in vertex_positions {
                 let transformed_vertex = position + rotation.mul_vec3(vertex_pos);
                 
-                commands.spawn((
-                    PointLightBundle {
-                        point_light: PointLight {
-                            intensity: 10.0,  // Reduced intensity
-                            color: Color::rgb(1.0, 0.0, 0.0),
-                            range: 5.0,  // Reduced range
-                            ..default()
-                        },
-                        transform: Transform::from_translation(transformed_vertex),
-                        ..default()
-                    },
-                    TriangleVertex
-                ));
+                // commands.spawn((
+                //     PointLightBundle {
+                //         point_light: PointLight {
+                //             intensity: 0.0,  // Reduced intensity
+                //             color: Color::rgb(1.0, 1.0, 0.0),
+                //             range: 5.0,  // Reduced range
+                //             ..default()
+                //         },
+                //         transform: Transform::from_translation(transformed_vertex),
+                //         ..default()
+                //     },
+                //     TriangleVertex
+                // ));
             }
         }
     }
