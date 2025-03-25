@@ -58,6 +58,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
             }
             let position = hex_to_world(q, r, hex_radius);
             let mesh = create_hex_mesh(hex_radius);
+            let rotation = Quat::from_rotation_y(std::f32::consts::FRAC_PI_6); // Rotation of π/3 radians
             commands.spawn(PbrBundle {
                 mesh: meshes.add(mesh.clone()),
                 material: materials.add(StandardMaterial {
@@ -65,7 +66,11 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
                     perceptual_roughness: 0.6,
                     ..default()
                 }),
-                transform: Transform::from_translation(position),
+                transform: Transform {
+                    translation: position,
+                    rotation,
+                    ..default()
+                },
                 ..default()
             });
 
@@ -78,16 +83,20 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials
                     unlit: true,
                     ..default()
                 }),
-                transform: Transform::from_translation(position),
+                transform: Transform {
+                    translation: position,
+                    rotation,
+                    ..default()
+                },
                 ..default()
             });
 
             // Add a red point at the center of each hexagon
             commands.spawn(PointLightBundle {
                 point_light: PointLight {
-                    intensity: 50.0, // Adjust intensity for visibility
+                    intensity: 100.0, // Adjust intensity for visibility
                     color: Color::rgb(1.0, 0.0, 0.0), // Red color
-                    range: 1.0, // Small range to act as a point
+                    range: 100.0, // Small range to act as a point
                     ..default()
                 },
                 transform: Transform::from_translation(position),
