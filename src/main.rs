@@ -5,6 +5,8 @@ use bevy_asset::RenderAssetUsages; // Correct import for RenderAssetUsages
 
 // Taille de l'hexagone
 const HEX_SIZE: f32 = 30.0;
+// Ecart entre les hexagones
+const HEX_SPACING: f32 = 1.0;
 // Dimensions de la grille
 const GRID_WIDTH: i32 = 15;
 const GRID_HEIGHT: i32 = 15;
@@ -18,8 +20,14 @@ fn main() {
 
 // Positionne un hexagone dans la grille en nid d'abeille
 fn hex_position(q: i32, r: i32, size: f32) -> Vec2 {
-    let x = size * (3.0_f32.sqrt() * q as f32 + (3.0_f32.sqrt() / 2.0) * r as f32);
-    let y = size * (3.0 / 2.0) * r as f32;
+    let spacing = size + HEX_SPACING;
+    let x_offset = if r % 2 == 0 {
+        0.0 // No shift for even rows
+    } else {
+        spacing * 3.0_f32.sqrt() / 2.0 // Shift odd rows by half a hex width
+    };
+    let x = spacing * (3.0_f32.sqrt() * q as f32) + x_offset;
+    let y = spacing * (3.0 / 2.0) * r as f32;
     Vec2::new(x, y)
 }
 
@@ -38,9 +46,15 @@ fn setup(
     // Ajout de la caméra orthographique
     commands.spawn(Camera2dBundle::default());
 
+    // Calculate offset to center the grid
+    let spacing = HEX_SIZE + HEX_SPACING;
+    let offset_x = -(GRID_WIDTH as f32) * spacing * 3.0_f32.sqrt() / 2.0;
+    let offset_y = -(GRID_HEIGHT as f32) * spacing * (3.0 / 2.0) / 2.0;
+    let offset = Vec2::new(offset_x, offset_y);
+
     for q in 0..GRID_WIDTH {
         for r in 0..GRID_HEIGHT {
-            let center = hex_position(q, r, HEX_SIZE);
+            let center = hex_position(q, r, HEX_SIZE) + offset;
             spawn_hexagon(&mut commands, &mut meshes, &mut materials, center);
         }
     }
