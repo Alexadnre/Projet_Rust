@@ -1,95 +1,92 @@
 use bevy::prelude::*;
-use bevy::render::mesh::{Indices, Mesh};
-use bevy::render::render_resource::PrimitiveTopology;
-use bevy_asset::RenderAssetUsages; // Correct import for RenderAssetUsages
-
-// Taille de l'hexagone
-const HEX_SIZE: f32 = 30.0;
-// Ecart entre les hexagones
-const HEX_SPACING: f32 = 1.0;
-// Dimensions de la grille
-const GRID_WIDTH: i32 = 15;
-const GRID_HEIGHT: i32 = 15;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Startup, setup) // Remplace add_startup_system par add_systems
+        .insert_resource(SliderState { is_dragging: false })
+        .add_systems(Startup, setup)
+        .add_systems(Update, slider_system)
         .run();
 }
 
-// Positionne un hexagone dans la grille en nid d'abeille
-fn hex_position(q: i32, r: i32, size: f32) -> Vec2 {
-    let spacing = size + HEX_SPACING;
-    let x_offset = if r % 2 == 0 {
-        0.0 // No shift for even rows
-    } else {
-        spacing * 3.0_f32.sqrt() / 2.0 // Shift odd rows by half a hex width
-    };
-    let x = spacing * (3.0_f32.sqrt() * q as f32) + x_offset;
-    let y = spacing * (3.0 / 2.0) * r as f32;
-    Vec2::new(x, y)
+#[derive(Component)]
+struct SliderHandle;
+
+#[derive(Resource)]
+struct SliderState {
+    is_dragging: bool,
 }
 
-// Calcule les sommets d'un hexagone
-fn hex_corner(center: Vec2, size: f32, i: usize) -> Vec2 {
-    let angle = std::f32::consts::PI / 3.0 * i as f32 + std::f32::consts::PI / 6.0;
-    Vec2::new(center.x + size * angle.cos(), center.y + size * angle.sin())
-}
-
-// Génération de la grille d'hexagones
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    // Ajout de la caméra orthographique
+fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
-    // Calculate offset to center the grid
-    let spacing = HEX_SIZE + HEX_SPACING;
-    let offset_x = -(GRID_WIDTH as f32) * spacing * 3.0_f32.sqrt() / 2.0;
-    let offset_y = -(GRID_HEIGHT as f32) * spacing * (3.0 / 2.0) / 2.0;
-    let offset = Vec2::new(offset_x, offset_y);
-
-    for q in 0..GRID_WIDTH {
-        for r in 0..GRID_HEIGHT {
-            let center = hex_position(q, r, HEX_SIZE) + offset;
-            spawn_hexagon(&mut commands, &mut meshes, &mut materials, center);
-        }
-    }
+    // Barre du slider
+    commands.spawn(NodeBundle {
+        style: Style {
+            width: Val::Percent(50.0),
+            height: Val::Px(10.0),
+            position_type: PositionType::Absolute,
+            left: Val::Percent(25.0),
+            top: Val::Percent(50.0),
+            ..default()
+        },
+        background_color: Color::GRAY.into(),
+        ..default()
+    })
+    .with_children(|parent| {
+        // Poignée du slider
+        parent.spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Px(20.0),
+                    height: Val::Px(40.0),
+                    position_type: PositionType::Absolute,
+                    left: Val::Px(0.0), // Initialement aligné à gauche de la barre
+                    ..default()
+                },
+                background_color: Color::WHITE.into(),
+                ..default()
+            },
+            SliderHandle,
+        ));
+    });
 }
 
-// Création d'un hexagone divisé en 6 triangles
-fn spawn_hexagon(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    center: Vec2,
+fn slider_system(
+    mut slider_query: Query<&mut Style, With<SliderHandle>>,
+    mouse_input: Res<Input<MouseButton>>,
+    windows: Query<&Window>,
+    mut slider_state: ResMut<SliderState>,
 ) {
-    let hex_vertices: Vec<Vec2> = (0..6).map(|i| hex_corner(center, HEX_SIZE, i)).collect();
+    let window = windows.single();
+    let cursor_pos = window.cursor_position();
 
-    for i in 0..6 {
-        let triangle_vertices = vec![
-            [center.x, center.y, 0.0], // Centre de l'hexagone
-            [hex_vertices[i].x, hex_vertices[i].y, 0.0], // Sommet actuel
-            [hex_vertices[(i + 1) % 6].x, hex_vertices[(i + 1) % 6].y, 0.0], // Sommet suivant
-        ];
+    if let Some(cursor_pos) = cursor_pos {
+        for mut style in slider_query.iter_mut() {
+            let slider_x = if let Val::Px(x) = style.left { x } else { 0.0 };
 
-        let indices = vec![0, 1, 2];
+            let slider_width = 20.0;
+            let bar_width = window.width() * 0.5; // 50% de la largeur de la fenêtre
+            let bar_x = window.width() * 0.25; // Barre commence à 25% de la largeur de la fenêtre
 
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, triangle_vertices);
-        mesh.insert_indices(Indices::U32(indices));
+            let cursor_x = cursor_pos.x;
 
-        let mesh_handle = meshes.add(mesh);
-        let material_handle = materials.add(ColorMaterial::from(Color::srgb(0.2, 0.5, 0.8)));
+            let is_hovering = cursor_x > (bar_x + slider_x) - slider_width / 2.0
+                && cursor_x < (bar_x + slider_x) + slider_width / 2.0;
 
-        commands.spawn((
-            Mesh2d::from(mesh_handle),
-            MeshMaterial2d(material_handle),
-            Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-            GlobalTransform::default(),
-        ));
+            if is_hovering && mouse_input.just_pressed(MouseButton::Left) {
+                slider_state.is_dragging = true;
+            }
+
+            if mouse_input.just_released(MouseButton::Left) {
+                slider_state.is_dragging = false;
+            }
+
+            if slider_state.is_dragging {
+                let new_x = cursor_x - bar_x;
+                let clamped_x = new_x.clamp(0.0, bar_width - slider_width);
+                style.left = Val::Px(clamped_x);
+            }
+        }
     }
 }

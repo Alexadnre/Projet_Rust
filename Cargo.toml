@@ -1,8 +1,7 @@
 [package]
-name = "hex_grid_simulation"
+name = "bevy_slider"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-bevy = "0.15.3"
-bevy_asset = "0.15.3"
+bevy = "0.12"
