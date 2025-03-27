@@ -2,10 +2,12 @@ use bevy::prelude::*;
 use bevy::sprite::{Mesh2dHandle, MaterialMesh2dBundle};
 use bevy::render::render_resource::PrimitiveTopology;
 use bevy::render::mesh::Indices;
+use noise::{NoiseFn, Perlin};
 
 // Constantes initiales
 const GRID_WIDTH: i32 = 15;
 const GRID_HEIGHT: i32 = 15;
+const ROAD_DENSITY: f32 = 0.7; // Valeur entre 0.0 et 1.0, contrôle la densité des routes
 
 fn main() {
     App::new()
@@ -15,6 +17,7 @@ fn main() {
             value: 10.0,
         })
         .insert_resource(TileSpacing { factor: 0.1 }) // 10% de la taille par défaut
+        .insert_resource(RoadNoise { perlin: Perlin::new(42) }) // Seed fixe pour la reproductibilité
         .add_systems(Startup, setup)
         .add_systems(Update, (slider_system, update_hexagons))
         .run();
@@ -29,6 +32,9 @@ struct SliderText;
 #[derive(Component)]
 struct Hexagon;
 
+#[derive(Component)]
+struct Road;
+
 #[derive(Resource)]
 struct SliderState {
     is_dragging: bool,
@@ -37,7 +43,12 @@ struct SliderState {
 
 #[derive(Resource)]
 struct TileSpacing {
-    factor: f32, // Facteur d'espacement proportionnel à la taille
+    factor: f32,
+}
+
+#[derive(Resource)]
+struct RoadNoise {
+    perlin: Perlin,
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -94,7 +105,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ));
     });
 
-    spawn_hex_grid(&mut commands, 10.0, 0.1); // Taille initiale 10.0, facteur 0.1
+    spawn_hex_grid(&mut commands, 10.0, 0.1);
 }
 
 fn hex_position(q: i32, r: i32, size: f32, spacing_factor: f32) -> Vec2 {
@@ -175,10 +186,16 @@ fn update_hexagons(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     hex_query: Query<(Entity, &Transform), With<Hexagon>>,
+    road_query: Query<Entity, With<Road>>,
     slider_state: Res<SliderState>,
     tile_spacing: Res<TileSpacing>,
+    road_noise: Res<RoadNoise>,
 ) {
-    for (entity, _transform) in hex_query.iter() {
+    // Supprimer les anciens hexagones et routes
+    for (entity, _) in hex_query.iter() {
+        commands.entity(entity).despawn();
+    }
+    for entity in road_query.iter() {
         commands.entity(entity).despawn();
     }
 
@@ -189,12 +206,16 @@ fn update_hexagons(
     let offset_y = -(GRID_HEIGHT as f32 - 1.0) * total_size * 3.0 / 2.0 / 2.0;
     let offset = Vec2::new(offset_x, offset_y);
 
+    // Générer les hexagones
     for q in 0..GRID_WIDTH {
         for r in 0..GRID_HEIGHT {
             let center = hex_position(q, r, hex_size, tile_spacing.factor) + offset;
             spawn_hexagon(&mut commands, &mut meshes, &mut materials, center, hex_size);
         }
     }
+
+    // Générer les routes
+    spawn_roads(&mut commands, &mut meshes, &mut materials, hex_size, tile_spacing.factor, &road_noise, offset);
 }
 
 fn spawn_hexagon(
@@ -204,7 +225,7 @@ fn spawn_hexagon(
     center: Vec2,
     size: f32,
 ) {
-    let hex_vertices: Vec<Vec2> = (0..6).map(|i| hex_corner(center, size*2.0, i)).collect();
+    let hex_vertices: Vec<Vec2> = (0..6).map(|i| hex_corner(center, size * 2.0, i)).collect();
 
     for i in 0..6 {
         let triangle_vertices = vec![
@@ -231,4 +252,97 @@ fn spawn_hexagon(
             Hexagon,
         ));
     }
+}
+fn spawn_roads(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    hex_size: f32,
+    spacing_factor: f32,
+    road_noise: &RoadNoise,
+    offset: Vec2,
+) {
+    let mut generated_roads = std::collections::HashSet::new();
+    let spacing = hex_size * spacing_factor;
+
+    for q in 0..GRID_WIDTH {
+        for r in 0..GRID_HEIGHT {
+            let center = hex_position(q, r, hex_size, spacing_factor) + offset;
+            let hex_vertices: Vec<Vec2> = (0..6).map(|i| hex_corner(center, hex_size, i)).collect();
+
+            for i in 0..6 {
+                let (dq, dr) = match i {
+                    0 => (1, 0),   // Est
+                    1 => (1, -1),  // Nord-Est
+                    2 => (0, -1),  // Nord-Ouest
+                    3 => (-1, 0),  // Ouest
+                    4 => (-1, 1),  // Sud-Ouest
+                    5 => (0, 1),   // Sud-Est
+                    _ => unreachable!(),
+                };
+
+                let neighbor_q = q + dq;
+                let neighbor_r = r + dr;
+
+                if neighbor_q >= 0 && neighbor_q < GRID_WIDTH && neighbor_r >= 0 && neighbor_r < GRID_HEIGHT {
+                    let start = hex_vertices[i];
+                    let end = hex_vertices[(i + 1) % 6];
+
+                    let road_id = if q <= neighbor_q && r <= neighbor_r {
+                        (q, r, neighbor_q, neighbor_r)
+                    } else {
+                        (neighbor_q, neighbor_r, q, r)
+                    };
+
+                    if !generated_roads.contains(&road_id) {
+                        generated_roads.insert(road_id);
+
+                        // Utiliser les coordonnées de la grille (q, r) pour le bruit
+                        let noise_value = road_noise.perlin.get([q as f64 * 0.1, r as f64 * 0.1]);
+                        if noise_value > (1.0 - ROAD_DENSITY as f64) {
+                            spawn_road_segment(commands, meshes, materials, start * 2.0, end * 2.0, hex_size);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+fn spawn_road_segment(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    start: Vec2,
+    end: Vec2,
+    hex_size: f32,
+) {
+    let road_thickness = hex_size * 0.5; // Épaisseur proportionnelle à la taille de l'hexagone
+    let direction = (end - start).normalize();
+    let perpendicular = Vec2::new(-direction.y, direction.x) * road_thickness / 2.0;
+
+    // Créer un rectangle pour représenter le segment de route
+    let vertices = vec![
+        [start.x - perpendicular.x, start.y - perpendicular.y, 0.1],
+        [start.x + perpendicular.x, start.y + perpendicular.y, 0.1],
+        [end.x + perpendicular.x, end.y + perpendicular.y, 0.1],
+        [end.x - perpendicular.x, end.y - perpendicular.y, 0.1],
+    ];
+
+    let indices = vec![0, 1, 2, 0, 2, 3];
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, Default::default());
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+    mesh.insert_indices(Indices::U32(indices));
+
+    let mesh_handle = meshes.add(mesh);
+    let material_handle = materials.add(ColorMaterial::from(Color::rgb(0.8, 0.8, 0.8))); // Couleur grise pour les routes
+
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: Mesh2dHandle(mesh_handle),
+            material: material_handle,
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)), // Légèrement au-dessus des hexagones
+            ..default()
+        },
+        Road,
+    ));
 }
