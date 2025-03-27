@@ -7,7 +7,6 @@ use noise::{NoiseFn, Perlin};
 // Constantes initiales
 const GRID_WIDTH: i32 = 15;
 const GRID_HEIGHT: i32 = 15;
-const ROAD_DENSITY: f32 = 0.7; // Valeur entre 0.0 et 1.0, contrôle la densité des routes
 
 fn main() {
     App::new()
@@ -15,6 +14,10 @@ fn main() {
         .insert_resource(SliderState { 
             is_dragging: false, 
             value: 10.0,
+        })
+        .insert_resource(RoadDensityState { 
+            is_dragging: false, 
+            value: 0.7, // Valeur initiale de ROAD_DENSITY
         })
         .insert_resource(TileSpacing { factor: 0.1 }) // 10% de la taille par défaut
         .insert_resource(RoadNoise { perlin: Perlin::new(42) }) // Seed fixe pour la reproductibilité
@@ -27,7 +30,13 @@ fn main() {
 struct SliderHandle;
 
 #[derive(Component)]
+struct RoadDensitySliderHandle;
+
+#[derive(Component)]
 struct SliderText;
+
+#[derive(Component)]
+struct RoadDensityText;
 
 #[derive(Component)]
 struct Hexagon;
@@ -37,6 +46,12 @@ struct Road;
 
 #[derive(Resource)]
 struct SliderState {
+    is_dragging: bool,
+    value: f32,
+}
+
+#[derive(Resource)]
+struct RoadDensityState {
     is_dragging: bool,
     value: f32,
 }
@@ -54,6 +69,7 @@ struct RoadNoise {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
+    // Slider pour la taille des hexagones
     commands.spawn((
         TextBundle {
             text: Text::from_section(
@@ -105,6 +121,58 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ));
     });
 
+    // Slider pour la densité des routes
+    commands.spawn((
+        TextBundle {
+            text: Text::from_section(
+                "Densité routes: 0.7",
+                TextStyle {
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 20.0,
+                    color: Color::WHITE,
+                },
+            ),
+            style: Style {
+                position_type: PositionType::Absolute,
+                right: Val::Px(50.0),
+                top: Val::Px(80.0),
+                ..default()
+            },
+            ..default()
+        },
+        RoadDensityText,
+    ));
+
+    commands.spawn(NodeBundle {
+        style: Style {
+            width: Val::Px(150.0),
+            height: Val::Px(6.0),
+            position_type: PositionType::Absolute,
+            right: Val::Px(50.0),
+            top: Val::Px(110.0),
+            ..default()
+        },
+        background_color: Color::GRAY.into(),
+        ..default()
+    })
+    .with_children(|parent| {
+        parent.spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Px(12.0),
+                    height: Val::Px(24.0),
+                    position_type: PositionType::Absolute,
+                    left: Val::Px(84.0), // Position initiale pour 0.7 (70% de 150-12)
+                    top: Val::Px(-9.0),
+                    ..default()
+                },
+                background_color: Color::WHITE.into(),
+                ..default()
+            },
+            RoadDensitySliderHandle,
+        ));
+    });
+
     spawn_hex_grid(&mut commands, 10.0, 0.1);
 }
 
@@ -138,11 +206,14 @@ fn spawn_hex_grid(commands: &mut Commands, hex_size: f32, spacing_factor: f32) {
 }
 
 fn slider_system(
-    mut slider_query: Query<&mut Style, With<SliderHandle>>,
-    mut text_query: Query<&mut Text, With<SliderText>>,
+    mut size_slider_query: Query<&mut Style, With<SliderHandle>>,
+    mut density_slider_query: Query<&mut Style, (With<RoadDensitySliderHandle>, Without<SliderHandle>)>,
+    mut size_text_query: Query<&mut Text, With<SliderText>>,
+    mut density_text_query: Query<&mut Text, (With<RoadDensityText>, Without<SliderText>)>,
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
-    mut slider_state: ResMut<SliderState>,
+    mut size_slider_state: ResMut<SliderState>,
+    mut density_slider_state: ResMut<RoadDensityState>,
 ) {
     let window = windows.single();
     let cursor_pos = window.cursor_position();
@@ -151,7 +222,8 @@ fn slider_system(
         let bar_width = 150.0;
         let bar_x = window.width() - 200.0;
 
-        for mut style in slider_query.iter_mut() {
+        // Gestion du slider de taille
+        for mut style in size_slider_query.iter_mut() {
             let slider_x = if let Val::Px(x) = style.left { x } else { 0.0 };
 
             let is_hovering = cursor_pos.x >= (bar_x + slider_x) - 6.0
@@ -160,24 +232,55 @@ fn slider_system(
                 && cursor_pos.y <= 50.0 + 10.0;
 
             if is_hovering && mouse_input.just_pressed(MouseButton::Left) {
-                slider_state.is_dragging = true;
+                size_slider_state.is_dragging = true;
             }
 
             if mouse_input.just_released(MouseButton::Left) {
-                slider_state.is_dragging = false;
+                size_slider_state.is_dragging = false;
             }
 
-            if slider_state.is_dragging {
+            if size_slider_state.is_dragging {
                 let new_x = cursor_pos.x - bar_x;
                 let clamped_x = new_x.clamp(0.0, bar_width - 12.0);
                 style.left = Val::Px(clamped_x);
-                slider_state.value = 10.0 + (clamped_x / (bar_width - 12.0)) * 40.0;
+                size_slider_state.value = 10.0 + (clamped_x / (bar_width - 12.0)) * 40.0;
+            }
+        }
+
+        // Gestion du slider de densité des routes
+        for mut style in density_slider_query.iter_mut() {
+            let slider_x = if let Val::Px(x) = style.left { x } else { 0.0 };
+
+            let is_hovering = cursor_pos.x >= (bar_x + slider_x) - 6.0
+                && cursor_pos.x <= (bar_x + slider_x) + 6.0
+                && cursor_pos.y >= 110.0 - 10.0
+                && cursor_pos.y <= 110.0 + 10.0;
+
+            if is_hovering && mouse_input.just_pressed(MouseButton::Left) {
+                density_slider_state.is_dragging = true;
+            }
+
+            if mouse_input.just_released(MouseButton::Left) {
+                density_slider_state.is_dragging = false;
+            }
+
+            if density_slider_state.is_dragging {
+                let new_x = cursor_pos.x - bar_x;
+                let clamped_x = new_x.clamp(0.0, bar_width - 12.0);
+                style.left = Val::Px(clamped_x);
+                density_slider_state.value = clamped_x / (bar_width - 12.0); // Valeur entre 0.0 et 1.0
             }
         }
     }
 
-    for mut text in text_query.iter_mut() {
-        text.sections[0].value = format!("Taille: {:.0}", slider_state.value);
+    // Mise à jour du texte pour la taille
+    for mut text in size_text_query.iter_mut() {
+        text.sections[0].value = format!("Taille: {:.0}", size_slider_state.value);
+    }
+
+    // Mise à jour du texte pour la densité
+    for mut text in density_text_query.iter_mut() {
+        text.sections[0].value = format!("Densité routes: {:.1}", density_slider_state.value);
     }
 }
 
@@ -188,6 +291,7 @@ fn update_hexagons(
     hex_query: Query<(Entity, &Transform), With<Hexagon>>,
     road_query: Query<Entity, With<Road>>,
     slider_state: Res<SliderState>,
+    density_state: Res<RoadDensityState>,
     tile_spacing: Res<TileSpacing>,
     road_noise: Res<RoadNoise>,
 ) {
@@ -214,8 +318,8 @@ fn update_hexagons(
         }
     }
 
-    // Générer les routes
-    spawn_roads(&mut commands, &mut meshes, &mut materials, hex_size, tile_spacing.factor, &road_noise, offset);
+    // Générer les routes avec la densité dynamique
+    spawn_roads(&mut commands, &mut meshes, &mut materials, hex_size, tile_spacing.factor, &road_noise, offset, density_state.value);
 }
 
 fn spawn_hexagon(
@@ -253,6 +357,7 @@ fn spawn_hexagon(
         ));
     }
 }
+
 fn spawn_roads(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -261,6 +366,7 @@ fn spawn_roads(
     spacing_factor: f32,
     road_noise: &RoadNoise,
     offset: Vec2,
+    road_density: f32, // Nouvelle densité dynamique
 ) {
     let mut generated_roads = std::collections::HashSet::new();
     let spacing = hex_size * spacing_factor;
@@ -299,7 +405,7 @@ fn spawn_roads(
 
                         // Utiliser les coordonnées de la grille (q, r) pour le bruit
                         let noise_value = road_noise.perlin.get([q as f64 * 0.1, r as f64 * 0.1]);
-                        if noise_value > (1.0 - ROAD_DENSITY as f64) {
+                        if noise_value > (1.0 - road_density as f64) {
                             spawn_road_segment(commands, meshes, materials, start * 2.0, end * 2.0, hex_size);
                         }
                     }
@@ -308,6 +414,7 @@ fn spawn_roads(
         }
     }
 }
+
 fn spawn_road_segment(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
