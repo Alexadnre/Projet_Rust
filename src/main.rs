@@ -1,95 +1,152 @@
-use bevy::prelude::*;
-use bevy::render::mesh::{Indices, Mesh};
-use bevy::render::render_resource::PrimitiveTopology;
-use bevy_asset::RenderAssetUsages; // Correct import for RenderAssetUsages
+// main.rs
 
-// Taille de l'hexagone
-const HEX_SIZE: f32 = 30.0;
-// Ecart entre les hexagones
-const HEX_SPACING: f32 = 1.0;
-// Dimensions de la grille
-const GRID_WIDTH: i32 = 15;
-const GRID_HEIGHT: i32 = 15;
+// Importation des modules personnalisés
+mod camera; // Gestion de la caméra
+mod lighting; // Configuration de l'éclairage
+mod city; // Génération de la ville procédurale
+mod trees; // Génération des arbres
+mod components; // Définition des composants ECS
+
+use bevy::prelude::*; // Importation des fonctionnalités principales de Bevy
+use camera::{setup_camera, pan_camera}; // Fonctions pour configurer et déplacer la caméra
+use lighting::setup_lighting; // Fonction pour configurer l'éclairage
+use city::generate_city; // Fonction pour générer la ville
+use trees::spawn_trees; // Fonction pour générer les arbres
+
+#[derive(Resource)]
+struct ZoomState {
+    is_dragging: bool,
+    value: f32,
+}
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_systems(Startup, setup) // Remplace add_startup_system par add_systems
+        // Ajout des plugins par défaut de Bevy, avec une configuration personnalisée pour la fenêtre
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Ville Procédurale 3D".into(), // Titre de la fenêtre
+                resolution: (1024.0, 768.0).into(), // Résolution de la fenêtre
+                ..default() // Autres paramètres par défaut
+            }),
+            ..default() // Autres paramètres par défaut pour le plugin de la fenêtre
+        }))
+        .insert_resource(ZoomState {
+            is_dragging: false,
+            value: 1.0, // Valeur initiale du zoom
+        })
+        // Ajout des systèmes à exécuter au démarrage
+        .add_systems(Startup, (setup_camera, setup_lighting, generate_city, spawn_trees, setup))
+        // Ajout des systèmes à exécuter à chaque mise à jour
+        .add_systems(Update, (pan_camera, zoom_system))
+        // Lancement de l'application
         .run();
 }
 
-// Positionne un hexagone dans la grille en nid d'abeille
-fn hex_position(q: i32, r: i32, size: f32) -> Vec2 {
-    let spacing = size + HEX_SPACING;
-    let x_offset = if r % 2 == 0 {
-        0.0 // No shift for even rows
-    } else {
-        spacing * 3.0_f32.sqrt() / 2.0 // Shift odd rows by half a hex width
-    };
-    let x = spacing * (3.0_f32.sqrt() * q as f32) + x_offset;
-    let y = spacing * (3.0 / 2.0) * r as f32;
-    Vec2::new(x, y)
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0.0, 700.0, 400.0)
+            .looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    });
+
+    // Slider pour le zoom
+    commands.spawn((
+        TextBundle {
+            text: Text::from_section(
+                "Zoom: 1.0",
+                TextStyle {
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    font_size: 20.0,
+                    color: Color::WHITE,
+                },
+            ),
+            style: Style {
+                position_type: PositionType::Absolute,
+                right: Val::Px(50.0),
+                top: Val::Px(140.0),
+                ..default()
+            },
+            ..default()
+        },
+        SliderText,
+    ));
+
+    commands.spawn(NodeBundle {
+        style: Style {
+            width: Val::Px(150.0),
+            height: Val::Px(6.0),
+            position_type: PositionType::Absolute,
+            right: Val::Px(50.0),
+            top: Val::Px(170.0),
+            ..default()
+        },
+        background_color: Color::GRAY.into(),
+        ..default()
+    })
+    .with_children(|parent| {
+        parent.spawn((
+            NodeBundle {
+                style: Style {
+                    width: Val::Px(12.0),
+                    height: Val::Px(24.0),
+                    position_type: PositionType::Absolute,
+                    left: Val::Px(0.0),
+                    top: Val::Px(-9.0),
+                    ..default()
+                },
+                background_color: Color::WHITE.into(),
+                ..default()
+            },
+            SliderHandle,
+        ));
+    });
 }
 
-// Calcule les sommets d'un hexagone
-fn hex_corner(center: Vec2, size: f32, i: usize) -> Vec2 {
-    let angle = std::f32::consts::PI / 3.0 * i as f32 + std::f32::consts::PI / 6.0;
-    Vec2::new(center.x + size * angle.cos(), center.y + size * angle.sin())
-}
-
-// Génération de la grille d'hexagones
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+fn zoom_system(
+    mut slider_query: Query<&mut Style, With<SliderHandle>>,
+    mut text_query: Query<&mut Text, With<SliderText>>,
+    mut camera_query: Query<&mut Transform, With<Camera3d>>,
+    mouse_input: Res<Input<MouseButton>>,
+    windows: Query<&Window>,
+    mut zoom_state: ResMut<ZoomState>,
 ) {
-    // Ajout de la caméra orthographique
-    commands.spawn(Camera2dBundle::default());
+    let window = windows.single();
+    let cursor_pos = window.cursor_position();
 
-    // Calculate offset to center the grid
-    let spacing = HEX_SIZE + HEX_SPACING;
-    let offset_x = -(GRID_WIDTH as f32) * spacing * 3.0_f32.sqrt() / 2.0;
-    let offset_y = -(GRID_HEIGHT as f32) * spacing * (3.0 / 2.0) / 2.0;
-    let offset = Vec2::new(offset_x, offset_y);
+    if let Some(cursor_pos) = cursor_pos {
+        let bar_width = 150.0;
+        let bar_x = window.width() - 200.0;
 
-    for q in 0..GRID_WIDTH {
-        for r in 0..GRID_HEIGHT {
-            let center = hex_position(q, r, HEX_SIZE) + offset;
-            spawn_hexagon(&mut commands, &mut meshes, &mut materials, center);
+        for mut style in slider_query.iter_mut() {
+            let slider_x = if let Val::Px(x) = style.left { x } else { 0.0 };
+
+            let is_hovering = cursor_pos.x >= (bar_x + slider_x) - 6.0
+                && cursor_pos.x <= (bar_x + slider_x) + 6.0
+                && cursor_pos.y >= 170.0 - 10.0
+                && cursor_pos.y <= 170.0 + 10.0;
+
+            if is_hovering && mouse_input.just_pressed(MouseButton::Left) {
+                zoom_state.is_dragging = true;
+            }
+
+            if mouse_input.just_released(MouseButton::Left) {
+                zoom_state.is_dragging = false;
+            }
+
+            if zoom_state.is_dragging {
+                let new_x = cursor_pos.x - bar_x;
+                let clamped_x = new_x.clamp(0.0, bar_width - 12.0);
+                style.left = Val::Px(clamped_x);
+                zoom_state.value = 0.5 + (clamped_x / (bar_width - 12.0)) * 2.0; // Zoom entre 0.5 et 2.5
+            }
         }
     }
-}
 
-// Création d'un hexagone divisé en 6 triangles
-fn spawn_hexagon(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    center: Vec2,
-) {
-    let hex_vertices: Vec<Vec2> = (0..6).map(|i| hex_corner(center, HEX_SIZE, i)).collect();
+    for mut text in text_query.iter_mut() {
+        text.sections[0].value = format!("Zoom: {:.1}", zoom_state.value);
+    }
 
-    for i in 0..6 {
-        let triangle_vertices = vec![
-            [center.x, center.y, 0.0], // Centre de l'hexagone
-            [hex_vertices[i].x, hex_vertices[i].y, 0.0], // Sommet actuel
-            [hex_vertices[(i + 1) % 6].x, hex_vertices[(i + 1) % 6].y, 0.0], // Sommet suivant
-        ];
-
-        let indices = vec![0, 1, 2];
-
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, triangle_vertices);
-        mesh.insert_indices(Indices::U32(indices));
-
-        let mesh_handle = meshes.add(mesh);
-        let material_handle = materials.add(ColorMaterial::from(Color::srgb(0.2, 0.5, 0.8)));
-
-        commands.spawn((
-            Mesh2d::from(mesh_handle),
-            MeshMaterial2d(material_handle),
-            Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-            GlobalTransform::default(),
-        ));
+    for mut transform in camera_query.iter_mut() {
+        transform.scale = Vec3::splat(zoom_state.value); // Appliquer le zoom à la caméra
     }
 }

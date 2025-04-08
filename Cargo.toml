@@ -1,8 +1,11 @@
 [package]
-name = "hex_grid_simulation"
+name = "Projet_RUST"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-bevy = "0.15.3"
-bevy_asset = "0.15.3"
+bevy = "0.13"
+rand = "0.8"
+noise = "0.8"
+bevy_ttf = "0.6" # Ajout pour la gestion des polices
+
