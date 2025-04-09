@@ -7,4 +7,5 @@ edition = "2021"
 bevy = "0.13"
 rand = "0.8"
 noise = "0.8"
+bevy_egui = "0.25"
 

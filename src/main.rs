@@ -8,12 +8,14 @@ mod components;
 mod ui;
 
 use bevy::prelude::*;
+use bevy_egui::EguiPlugin;
+
 use camera::{setup_camera, pan_camera};
 use lighting::setup_lighting;
 use city::generate_city;
 use trees::spawn_trees;
 use components::{ChaosFactor, PreviousChaos, CityElement};
-use ui::{setup_ui, chaos_slider};
+use ui::{setup_ui, egui_chaos_ui}; // ✅ egui_chaos_ui à la place de chaos_slider
 
 fn main() {
     App::new()
@@ -27,15 +29,16 @@ fn main() {
             }),
             ..default()
         }))
+        .add_plugins(EguiPlugin) // ✅ Plugin pour interface graphique
         .add_systems(Startup, (
             setup_camera,
             setup_lighting,
             setup_ui,
             spawn_trees,
         ))
-        .add_systems(Startup, generate_city_startup) // ✅ Corrected: was missing a closing parenthesis before
+        .add_systems(Startup, generate_city_startup)
         .add_systems(Update, pan_camera)
-        .add_systems(Update, chaos_slider)
+        .add_systems(Update, egui_chaos_ui) // ✅ Slider visuel
         .add_systems(Update, rebuild_city_on_chaos_change)
         .run();
 }
@@ -47,24 +50,21 @@ fn rebuild_city_on_chaos_change(
     materials: ResMut<Assets<StandardMaterial>>,
     chaos: Res<ChaosFactor>,
     mut prev: ResMut<PreviousChaos>,
-    keys: Res<ButtonInput<KeyCode>>,
     city_query: Query<Entity, With<CityElement>>,
 ) {
-    if keys.just_pressed(KeyCode::KeyC) || keys.just_pressed(KeyCode::KeyV) {
-        if (chaos.0 - prev.0).abs() > f32::EPSILON {
-            println!("🔁 Régénération de la ville avec chaos {:.2}", chaos.0);
+    if (chaos.0 - prev.0).abs() > f32::EPSILON {
+        println!("🔁 Régénération de la ville avec chaos {:.2}", chaos.0);
 
-            // Supprime les entités de la ville
-            for entity in &city_query {
-                commands.entity(entity).despawn_recursive();
-            }
-
-            // Reconstruit la ville
-            generate_city(commands, meshes, materials, chaos.0);
-
-            // Met à jour le précédent
-            prev.0 = chaos.0;
+        // Supprime les entités de la ville
+        for entity in &city_query {
+            commands.entity(entity).despawn_recursive();
         }
+
+        // Reconstruit la ville
+        generate_city(commands, meshes, materials, chaos.0);
+
+        // Met à jour le précédent
+        prev.0 = chaos.0;
     }
 }
 

@@ -1,9 +1,8 @@
-// ui.rs
-
 use bevy::prelude::*;
-use bevy::input::{keyboard::KeyCode, ButtonInput};
-use crate::components::{ChaosFactor};
+use bevy_egui::{EguiContexts, egui}; // ✅ Import du module EGUI
+use crate::components::ChaosFactor;
 
+/// Initialise la caméra 2D pour l’interface utilisateur
 pub fn setup_ui(mut commands: Commands) {
     commands.spawn(Camera2dBundle {
         camera: Camera {
@@ -14,16 +13,20 @@ pub fn setup_ui(mut commands: Commands) {
     });
 }
 
-pub fn chaos_slider(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
+/// Affiche un slider visuel pour ajuster le niveau de chaos
+pub fn egui_chaos_ui(
+    mut contexts: EguiContexts,
     mut chaos: ResMut<ChaosFactor>,
 ) {
-    if keyboard_input.just_pressed(KeyCode::KeyC) {
-        chaos.0 = (chaos.0 + 0.05).min(1.0);
-        println!("Chaos + → {:.2}", chaos.0);
-    }
-    if keyboard_input.just_pressed(KeyCode::KeyV) {
-        chaos.0 = (chaos.0 - 0.05).max(0.0);
-        println!("Chaos - → {:.2}", chaos.0);
-    }
+    egui::Window::new("🔧 Chaos Control").show(contexts.ctx_mut(), |ui| {
+        ui.label("Niveau de Chaos");
+        let mut value = chaos.0;
+        if ui
+            .add(egui::Slider::new(&mut value, 0.0..=1.0).text("Chaos"))
+            .changed()
+        {
+            println!("🌀 Chaos ajusté à {:.2}", value);
+            chaos.0 = value;
+        }
+    });
 }
