@@ -16,11 +16,17 @@ use city::generate_city;
 use trees::spawn_trees;
 use components::{ChaosFactor, PreviousChaos, CityElement};
 use ui::{setup_ui, egui_chaos_ui}; // ✅ egui_chaos_ui à la place de chaos_slider
+use components::ZoomLevel;
+use camera::apply_camera_zoom;
+
+
 
 fn main() {
     App::new()
         .insert_resource(ChaosFactor(0.5))
         .insert_resource(PreviousChaos(0.5))
+        .insert_resource(ZoomLevel(1.0)) // ✅ Nouvelle ressource
+    
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Ville Procédurale 3D".into(),
@@ -40,6 +46,8 @@ fn main() {
         .add_systems(Update, pan_camera)
         .add_systems(Update, egui_chaos_ui) // ✅ Slider visuel
         .add_systems(Update, rebuild_city_on_chaos_change)
+        .add_systems(Update, apply_camera_zoom)
+
         .run();
 }
 

@@ -21,3 +21,5 @@ pub struct PreviousChaos(pub f32);
 #[derive(Component)]
 pub struct CityElement;
 
+#[derive(Resource, Clone)]
+pub struct ZoomLevel(pub f32); // Valeur entre 0.5 et 2.0 par exemple

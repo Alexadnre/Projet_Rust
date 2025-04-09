@@ -1,6 +1,7 @@
-// camera.rs
 use bevy::prelude::*;
+use crate::components::ZoomLevel;
 
+/// Initialise la caméra 3D positionnée au-dessus de la ville
 pub fn setup_camera(mut commands: Commands) {
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0.0, 700.0, 400.0)
@@ -9,31 +10,40 @@ pub fn setup_camera(mut commands: Commands) {
     });
 }
 
+/// Permet de déplacer la caméra avec les touches fléchées
 pub fn pan_camera(
-    time: Res<Time>, // Ressource pour accéder au temps écoulé entre les frames
-    keyboard_input: Res<ButtonInput<KeyCode>>, // Ressource pour détecter les entrées clavier
-    mut query: Query<&mut Transform, With<Camera3d>>, // Query pour accéder aux transformations des caméras 3D
+    time: Res<Time>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut query: Query<&mut Transform, With<Camera3d>>,
 ) {
-    // Calcul de la vitesse de déplacement en fonction du temps écoulé
     let speed = 500.0 * time.delta_seconds();
 
-    // Parcours de toutes les caméras 3D dans la query
     for mut transform in &mut query {
-        // Déplacement vers l'avant si la flèche haut est pressée
         if keyboard_input.pressed(KeyCode::ArrowUp) {
-            transform.translation.z -= speed; // Réduction de la position Z
+            transform.translation.z -= speed;
         }
-        // Déplacement vers l'arrière si la flèche bas est pressée
         if keyboard_input.pressed(KeyCode::ArrowDown) {
-            transform.translation.z += speed; // Augmentation de la position Z
+            transform.translation.z += speed;
         }
-        // Déplacement vers la gauche si la flèche gauche est pressée
         if keyboard_input.pressed(KeyCode::ArrowLeft) {
-            transform.translation.x -= speed; // Réduction de la position X
+            transform.translation.x -= speed;
         }
-        // Déplacement vers la droite si la flèche droite est pressée
         if keyboard_input.pressed(KeyCode::ArrowRight) {
-            transform.translation.x += speed; // Augmentation de la position X
+            transform.translation.x += speed;
+        }
+    }
+}
+
+/// Applique dynamiquement le zoom selon la valeur du slider EGUI
+pub fn apply_camera_zoom(
+    zoom: Res<ZoomLevel>,
+    mut query: Query<&mut Transform, With<Camera3d>>,
+) {
+    if zoom.is_changed() {
+        for mut transform in &mut query {
+            // Le zoom modifie la hauteur (Y) et la profondeur (Z) de la caméra
+            transform.translation.y = 700.0 / zoom.0;
+            transform.translation.z = 400.0 / zoom.0;
         }
     }
 }
