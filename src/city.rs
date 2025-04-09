@@ -1,6 +1,7 @@
 // city.rs
 use bevy::prelude::*;
 use bevy::render::mesh::shape::Box;
+use crate::components::ChaosFactor;
 
 
 use noise::{Perlin, NoiseFn};
@@ -10,11 +11,18 @@ use crate::components::*;
 const TILE_SIZE: f32 = 64.0;
 const GRID_SIZE: usize = 31;
 const BUILDING_HEIGHT_LIMIT: f32 = TILE_SIZE * 5.0;
-
+// Fonction pour supprimer la ville
+pub fn clear_city(mut commands: Commands, query: Query<Entity, With<CityElement>>) {
+    for entity in &query {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+// Fonction pour générer la ville procéduralement
 pub fn generate_city(
     mut commands: Commands, // Permet de créer et gérer des entités dans le monde
     mut meshes: ResMut<Assets<Mesh>>, // Gestion des maillages 3D
     mut materials: ResMut<Assets<StandardMaterial>>, // Gestion des matériaux appliqués aux maillages
+    chaos_value: f32, // Facteur de chaos pour influencer la génération avec le slider
 ) {
     // Génération d'une graine aléatoire pour le générateur de nombres
     let seed = rand::thread_rng().gen();
@@ -64,14 +72,20 @@ pub fn generate_city(
                             ..default() // Autres paramètres par défaut
                         },
                         Park, // Ajout du composant `Park` pour identifier cette entité comme un parc
+                        CityElement,// Ajout du composant `CityElement` pour identifier cette entité comme un élément de la ville
                     ));
                 }
                 '.' => {
                     // Si la tuile est un bâtiment ou une route
                     if rng.gen_range(0..10) < 7 {
                         // Génération d'un bâtiment
-                        let height = rng.gen_range(TILE_SIZE..=BUILDING_HEIGHT_LIMIT); // Hauteur aléatoire
-                        let width = TILE_SIZE * rng.gen_range(0.8..=1.0); // Largeur aléatoire
+                        let chaos_factor = chaos_value;
+                        let height = rng.gen_range(
+                            TILE_SIZE..=(TILE_SIZE + chaos_factor * (BUILDING_HEIGHT_LIMIT - TILE_SIZE))
+                        );// Hauteur variable en fonction du facteur de chaos
+                        let width = TILE_SIZE * rng.gen_range(
+                            (1.0 - chaos_factor * 0.2)..=1.0
+                        );// Largeur variable en fonction du facteur de chaos
                         let color = match rng.gen_range(0..3) {
                             0 => Color::rgb(0.8, 0.3, 0.3), // Rouge brique
                             1 => Color::rgb(0.3, 0.3, 0.8), // Bleu
@@ -94,6 +108,7 @@ pub fn generate_city(
                                 ..default()
                             },
                             Building, // Ajout du composant `Building` pour identifier cette entité comme un bâtiment
+                            CityElement, // Ajout du composant `CityElement` pour identifier cette entité comme un élément de la ville
                         ));
                     } else {
                         // Génération d'une route
@@ -112,6 +127,7 @@ pub fn generate_city(
                                 ..default()
                             },
                             Road, // Ajout du composant `Road` pour identifier cette entité comme une route
+                            CityElement, // Ajout du composant `CityElement` pour identifier cette entité comme un élément de la ville
                         ));
                     }
                 }

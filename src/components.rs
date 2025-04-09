@@ -2,14 +2,22 @@
 
 use bevy::prelude::*;
 
-// Composant pour identifier une entité comme un bâtiment
+// Composants existants
 #[derive(Component)]
 pub struct Building;
 
-// Composant pour identifier une entité comme une route
 #[derive(Component)]
 pub struct Road;
 
-// Composant pour identifier une entité comme un parc
 #[derive(Component)]
 pub struct Park;
+
+#[derive(Resource, Clone)]
+pub struct ChaosFactor(pub f32);
+
+#[derive(Resource)]
+pub struct PreviousChaos(pub f32);
+
+#[derive(Component)]
+pub struct CityElement;
+
