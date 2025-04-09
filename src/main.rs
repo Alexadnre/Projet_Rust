@@ -25,7 +25,7 @@ fn main() {
     App::new()
         .insert_resource(ChaosFactor(0.5))
         .insert_resource(PreviousChaos(0.5))
-        .insert_resource(ZoomLevel(1.0)) // ✅ Nouvelle ressource
+        .insert_resource(ZoomLevel(0.5)) // ✅ Nouvelle ressource
     
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {

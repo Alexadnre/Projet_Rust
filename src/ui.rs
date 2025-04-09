@@ -30,7 +30,7 @@ pub fn egui_chaos_ui(
         ui.separator();
         ui.label("Zoom Caméra");
         let mut zoom_value = zoom.0;
-        if ui.add(egui::Slider::new(&mut zoom_value, 0.5..=2.0).text("Zoom")).changed() {
+        if ui.add(egui::Slider::new(&mut zoom_value, 0.05..=2.0).text("Zoom")).changed() {
             println!("🔍 Zoom ajusté à {:.2}", zoom_value);
             zoom.0 = zoom_value;
         }

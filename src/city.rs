@@ -10,7 +10,7 @@ use crate::components::*;
 
 const TILE_SIZE: f32 = 64.0;
 const GRID_SIZE: usize = 31;
-const BUILDING_HEIGHT_LIMIT: f32 = TILE_SIZE * 5.0;
+const BUILDING_HEIGHT_LIMIT: f32 = TILE_SIZE * 15.0;
 // Fonction pour supprimer la ville
 pub fn clear_city(mut commands: Commands, query: Query<Entity, With<CityElement>>) {
     for entity in &query {
