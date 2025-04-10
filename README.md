@@ -10,7 +10,7 @@
 ## 📚 Sommaire
 
 1. [🎯 Objectif du projet](#🎯-objectif-du-projet)  
-2. [🧩 Fonctionnalités principales](#fonctionnalités-principales)  
+2. [🧩 Fonctionnalités principales](#-fonctionnalités-principales)  
 3. [🧠 Organisation du travail](#🧠-organisation-du-travail)  
 4. [🌆 Étapes de construction du projet](#🌆-étapes-de-construction-du-projet)  
    - [4.1 Génération simple (taille fixe)](#41-génération-simple-taille-fixe)  
