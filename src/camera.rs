@@ -4,16 +4,15 @@ use bevy::render::render_resource::{
     Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
 };
 use bevy::render::texture::Image;
-use bevy::render::mesh::Mesh;
 use bevy::math::Vec3;
-use bevy::window::{Window, WindowRef};
+use bevy::window::Window;
 
 use crate::components::{RenderScale, ZoomLevel};
 
 #[derive(Component)]
 pub struct RenderImage(pub Handle<Image>);
 
-/// Crée une caméra 3D qui rend dans la fenêtre principale
+/// Crée une caméra 3D qui rend dans une texture
 pub fn setup_camera(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
@@ -42,16 +41,18 @@ pub fn setup_camera(
             label: None,
             view_formats: &[],
         },
+        // Utilise le sampler "nearest" pour garder un rendu avec effet pixelisé si besoin
         sampler: bevy::render::texture::ImageSampler::nearest(),
         ..default()
     };
 
     let image_handle = images.add(image);
 
+    // Modification de la cible de rendu : la caméra rend dans la texture "image_handle"
     commands.spawn((
         Camera3dBundle {
             camera: Camera {
-                target: RenderTarget::Window(WindowRef::default()), // ✅ Rendu direct fenêtre
+                target: RenderTarget::Image(image_handle.clone()),
                 ..default()
             },
             transform: Transform::from_xyz(0.0, 700.0, 400.0).looking_at(Vec3::ZERO, Vec3::Y),
@@ -61,7 +62,30 @@ pub fn setup_camera(
     ));
 }
 
-/// Déplacement de la caméra avec les touches fléchées
+/// Affiche dynamiquement la texture de rendu (RenderImage) via un sprite
+pub fn display_render_image(
+    mut commands: Commands,
+    render_image_query: Query<&RenderImage>,
+) {
+    info!("display_render_image: Tentative de création du sprite");
+    if let Some(render_image) = render_image_query.iter().next() {
+        commands.spawn(SpriteBundle {
+            texture: render_image.0.clone(),
+            transform: Transform {
+                // Positionne le sprite au centre de la scène
+                translation: Vec3::new(0.0, 0.0, 0.0),
+                // Ajuste l'échelle pour agrandir l'affichage de la texture
+                scale: Vec3::splat(5.0),
+                ..default()
+            },
+            ..default()
+        });
+        info!("display_render_image: Sprite créé avec la texture {:?}", render_image.0);
+
+    }
+}
+
+/// Permet de déplacer la caméra avec les touches fléchées
 pub fn pan_camera(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
