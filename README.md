@@ -1,5 +1,4 @@
-![Vue générale](./screenshots/vue_generale.png)  
-*Vue d'ensemble de la ville générée procéduralement.*
+
 
 Parfait ! Voici la version finale du **README** en Markdown **avec les emojis conservés**, **les liens du sommaire fonctionnels**, et **toutes les parties explicatives détaillées** sans entrer trop dans la technique :
 
@@ -121,12 +120,13 @@ Utilisation d’**EGUI via `bevy_egui`** :
 - Changements trop fréquents → optimisation en appliquant les changements uniquement quand la souris est relâchée
 
 ### 6.4 Downscaling graphique
-
+![alt text](./screenshots/scale.png)
+*Le downscaling permet de dessiner moins de pixels, donc la carte graphique travaille moins. Le résultat est ensuite agrandi pour remplir l’écran.*
 - **Objectif** : alléger la charge GPU
+
 - **Solution utilisée** :
   - rendu vers une texture basse résolution
   - affichage sur un `quad` géant
-
 - **Limite importante** :  
   Le **pipeline de rendu de Bevy** continue à faire tous les calculs d'entités et lighting, **le gain est donc uniquement visuel**. On ne gagne **pas** en calcul ECS.
 
@@ -138,6 +138,9 @@ Utilisation d’**EGUI via `bevy_egui`** :
 
 ## 📷 Captures d’écran
 
+### Vue générale
+![Vue générale](./screenshots/vue_generale.png)  
+*Vue d'ensemble de la ville générée procéduralement.*
 ### Qualité de rendu
 | Aucune réduction graphique             | Moyenne réduction graphique            | Forte réduction graphique             |
 |----------------------------------------|-----------------------------------------|----------------------------------------|
@@ -172,7 +175,7 @@ Avant de commencer, assurez-vous d'avoir les éléments suivants installés sur 
 
 2. **Cloner ce dépôt** :
    ```bash
-   git clone <URL_DU_DEPOT>
+   git clone https://github.com/Alexadnre/Projet_Rust
    cd Projet_Rust
    ```
 
