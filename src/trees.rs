@@ -10,10 +10,15 @@ const GRID_SIZE: usize = 31;
 // Probabilité (en pourcentage) de faire apparaître un arbre sur une tuile
 const TREE_SPAWN_CHANCE: u8 = 15;
 
+/// Fonction pour générer des arbres aléatoires sur une grille.
+/// Chaque tuile a une probabilité définie d'avoir un arbre.
+/// - `commands`: Permet de créer et gérer des entités dans le monde.
+/// - `meshes`: Gestion des maillages 3D utilisés pour représenter les arbres.
+/// - `materials`: Gestion des matériaux appliqués aux maillages.
 pub fn spawn_trees(
-    mut commands: Commands, // Permet de créer et gérer des entités dans le monde
-    mut meshes: ResMut<Assets<Mesh>>, // Gestion des maillages 3D
-    mut materials: ResMut<Assets<StandardMaterial>>, // Gestion des matériaux appliqués aux maillages
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let mut rng = rand::thread_rng(); // Générateur de nombres aléatoires
 
