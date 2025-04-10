@@ -44,7 +44,7 @@ pub fn egui_chaos_ui(
 
         let mut zoom_value = zoom.0;
         if ui
-            .add(egui::Slider::new(&mut zoom_value, 0.05..=2.0).text("Zoom"))
+            .add(egui::Slider::new(&mut zoom_value, 0.1..=2.0).text("Zoom"))
             .changed()
         {
             println!("🔍 Zoom ajusté à {:.2}", zoom_value);
@@ -56,7 +56,7 @@ pub fn egui_chaos_ui(
 
         let mut scale_value = render_scale.0;
         if ui
-            .add(egui::Slider::new(&mut scale_value, 0.25..=1.0).text("Résolution"))
+            .add(egui::Slider::new(&mut scale_value, 0.05..=1.0).text("Résolution"))
             .changed()
         {
             println!("🖼️ Résolution de rendu ajustée à {:.2}", scale_value);

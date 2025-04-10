@@ -1,3 +1,5 @@
+// camera.rs
+
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::render::render_resource::{
@@ -10,7 +12,13 @@ use bevy::window::Window;
 use crate::components::{RenderScale, ZoomLevel};
 
 #[derive(Component)]
-pub struct RenderImage(pub Handle<Image>);
+pub struct RenderSprite;
+
+#[derive(Resource)]
+pub struct RenderTargetInfo {
+    pub image_handle: Handle<Image>,
+    pub camera_entity: Entity,
+}
 
 /// Crée une caméra 3D qui rend dans une texture
 pub fn setup_camera(
@@ -41,51 +49,110 @@ pub fn setup_camera(
             label: None,
             view_formats: &[],
         },
-        // Utilise le sampler "nearest" pour garder un rendu avec effet pixelisé si besoin
         sampler: bevy::render::texture::ImageSampler::nearest(),
         ..default()
     };
 
     let image_handle = images.add(image);
 
-    // Modification de la cible de rendu : la caméra rend dans la texture "image_handle"
-    commands.spawn((
-        Camera3dBundle {
-            camera: Camera {
-                target: RenderTarget::Image(image_handle.clone()),
+    let camera_entity = commands
+        .spawn((
+            Camera3dBundle {
+                camera: Camera {
+                    target: RenderTarget::Image(image_handle.clone()),
+                    ..default()
+                },
+                transform: Transform::from_xyz(0.0, 700.0, 400.0).looking_at(Vec3::ZERO, Vec3::Y),
                 ..default()
             },
-            transform: Transform::from_xyz(0.0, 700.0, 400.0).looking_at(Vec3::ZERO, Vec3::Y),
-            ..default()
+        ))
+        .id();
+
+    commands.insert_resource(RenderTargetInfo {
+        image_handle: image_handle.clone(),
+        camera_entity,
+    });
+}
+
+/// Met à jour dynamiquement la texture de rendu quand RenderScale change
+pub fn update_render_texture_on_scale_change(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    mut render_target_info: ResMut<RenderTargetInfo>,
+    render_scale: Res<RenderScale>,
+    windows: Query<&Window>,
+    mut camera_query: Query<&mut Camera>,
+) {
+    if !render_scale.is_changed() {
+        return;
+    }
+
+    let window = windows.single();
+    let (width, height) = (window.resolution.width(), window.resolution.height());
+    let target_width = (width * render_scale.0) as u32;
+    let target_height = (height * render_scale.0) as u32;
+
+    let image = Image {
+        data: vec![0; (target_width * target_height * 4) as usize],
+        texture_descriptor: TextureDescriptor {
+            size: Extent3d {
+                width: target_width,
+                height: target_height,
+                depth_or_array_layers: 1,
+            },
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Bgra8UnormSrgb,
+            mip_level_count: 1,
+            sample_count: 1,
+            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            label: None,
+            view_formats: &[],
         },
-        RenderImage(image_handle),
-    ));
+        sampler: bevy::render::texture::ImageSampler::nearest(),
+        ..default()
+    };
+
+    let new_image_handle = images.add(image);
+
+    if let Ok(mut camera) = camera_query.get_mut(render_target_info.camera_entity) {
+        camera.target = RenderTarget::Image(new_image_handle.clone());
+    }
+
+    render_target_info.image_handle = new_image_handle;
 }
 
 /// Affiche dynamiquement la texture de rendu (RenderImage) via un sprite
 pub fn display_render_image(
     mut commands: Commands,
-    render_image_query: Query<&RenderImage>,
+    render_target: Res<RenderTargetInfo>,
+    render_scale: Res<RenderScale>,
+    windows: Query<&Window>,
+    old_sprite_query: Query<Entity, With<RenderSprite>>,
 ) {
-    info!("display_render_image: Tentative de création du sprite");
-    if let Some(render_image) = render_image_query.iter().next() {
-        commands.spawn(SpriteBundle {
-            texture: render_image.0.clone(),
-            transform: Transform {
-                // Positionne le sprite au centre de la scène
-                translation: Vec3::new(0.0, 0.0, 0.0),
-                // Ajuste l'échelle pour agrandir l'affichage de la texture
-                scale: Vec3::splat(5.0),
+    if render_scale.is_changed() {
+        for entity in old_sprite_query.iter() {
+            commands.entity(entity).despawn();
+        }
+
+        let window = windows.single();
+        let window_size = Vec2::new(window.resolution.width(), window.resolution.height());
+
+        commands.spawn((
+            SpriteBundle {
+                texture: render_target.image_handle.clone(),
+                sprite: Sprite {
+                    custom_size: Some(window_size),
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::ZERO),
                 ..default()
             },
-            ..default()
-        });
-        info!("display_render_image: Sprite créé avec la texture {:?}", render_image.0);
-
+            RenderSprite,
+        ));
     }
 }
 
-/// Permet de déplacer la caméra avec les touches fléchées
+/// Déplacement de la caméra avec les touches fléchées
 pub fn pan_camera(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -109,7 +176,7 @@ pub fn pan_camera(
     }
 }
 
-/// Applique dynamiquement le zoom selon la valeur du slider UI
+/// Applique le zoom dynamique à la caméra 3D
 pub fn apply_camera_zoom(
     zoom: Res<ZoomLevel>,
     mut query: Query<&mut Transform, With<Camera3d>>,
