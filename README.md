@@ -1,9 +1,3 @@
-
-
-Parfait ! Voici la version finale du **README** en Markdown **avec les emojis conservés**, **les liens du sommaire fonctionnels**, et **toutes les parties explicatives détaillées** sans entrer trop dans la technique :
-
----
-
 # 🏙️ Projet Rust – Ville 3D Procédurale avec Bevy
 
 **Groupe :** Alexandre VIDELAINE / Alexandre GROSDIDIER / Théo LYONNET  
