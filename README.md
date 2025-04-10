@@ -9,26 +9,26 @@
 
 ## 📚 Sommaire
 
-1. [🎯 Objectif du projet](#🎯-objectif-du-projet)  
+1. [🎯 Objectif du projet](#-objectif-du-projet)  
 2. [🧩 Fonctionnalités principales](#-fonctionnalités-principales)  
-3. [🧠 Organisation du travail](#🧠-organisation-du-travail)  
-4. [🌆 Étapes de construction du projet](#🌆-étapes-de-construction-du-projet)  
+3. [🧠 Organisation du travail](#-organisation-du-travail)  
+4. [🌆 Étapes de construction du projet](#-étapes-de-construction-du-projet)  
    - [4.1 Génération simple (taille fixe)](#41-génération-simple-taille-fixe)  
    - [4.2 Génération procédurale avec bruit](#42-génération-procédurale-avec-bruit)  
    - [4.3 Génération par chunks](#43-génération-par-chunks)  
 5. [👤 Interactions utilisateur](#👤-interactions-utilisateur)  
    - [5.1 Caméra](#51-caméra)  
    - [5.2 Interface graphique](#52-interface-graphique)  
-6. [🧠 Problèmes rencontrés et solutions](#🧠-problèmes-rencontrés-et-solutions)  
+6. [🧠 Problèmes rencontrés et solutions](#-problèmes-rencontrés-et-solutions)  
    - [6.1 Gestion de la caméra](#61-gestion-de-la-caméra)  
    - [6.2 Chunking et performance](#62-chunking-et-performance)  
    - [6.3 Interface utilisateur (EGUI)](#63-interface-utilisateur-egui)  
    - [6.4 Downscaling graphique](#64-downscaling-graphique)  
 7. [📷 Captures d’écran](#📷-captures-décran)  
-8. [🚀 Exécution du projet](#🚀-exécution-du-projet)  
+8. [🚀 Exécution du projet](#-exécution-du-projet)  
    - [Prérequis](#prérequis)  
    - [Étapes](#étapes)  
-9. [📌 Conclusion](#📌-conclusion)
+9. [📌 Conclusion](#-conclusion)
 
 ---
 
