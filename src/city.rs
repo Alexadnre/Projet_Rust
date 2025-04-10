@@ -15,17 +15,18 @@ const TREE_SPAWN_CHANCE: u8 = 15;
 
 /// Fonction pour supprimer tous les éléments de la ville.
 /// Parcourt toutes les entités marquées comme `CityElement` et les supprime.
-pub fn clear_city(mut commands: Commands, query: Query<Entity, With<CityElement>>) {
+pub fn clear_city(commands: &mut Commands, query: Query<Entity, With<CityElement>>) {
     for entity in &query {
         commands.entity(entity).despawn_recursive(); // Supprime récursivement les entités
     }
 }
 
+
 /// Génération unique de la ville.
 /// Utilisée pour créer une ville procédurale au démarrage.
 /// - `chaos_value`: Influence le niveau de chaos dans la génération (0.0 = ordonné, 1.0 = chaotique).
 pub fn generate_city(
-    mut commands: Commands,
+    commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     chaos_value: f32,

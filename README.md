@@ -1,89 +1,139 @@
-Projet RUST 2025 
+# 🏙️ Projet RUST 2025 – Ville Générée Procéduralement
 
-Groupe : Alexandre VIDELAINE / Alexandre GROSDIDIER / Théo LYONNET
+**Groupe** : Alexandre VIDELAINE / Alexandre GROSDIDIER / Théo LYONNET  
+**Technologie** : [Bevy Engine](https://bevyengine.org/) (Rust, ECS, Rendering, UI)  
+**Thème** : Simulation d’une ville 3D générée à partir de bruit procédural.
 
-Thème : Ville générée procéduralement 
+---
 
-Crates : Bevy-engine
-REdemander par mail : master de génération de ville 
+## 📚 Sommaire
 
+- [1. Objectif du projet](#1-objectif-du-projet)
+- [2. Présentation technique](#2-présentation-technique)
+- [3. Fonctionnalités interactives](#3-fonctionnalités-interactives)
+- [4. Architecture du code](#4-architecture-du-code)
+- [5. Gestion de la résolution (Upscaling)](#5-gestion-de-la-résolution-upscaling)
+- [6. Problèmes rencontrés](#6-problèmes-rencontrés)
+- [7. Améliorations possibles](#7-améliorations-possibles)
+- [8. Captures d’écran](#8-captures-décran)
+- [9. Lancer le projet](#9-lancer-le-projet)
 
+---
 
-site : https://bevyengine.org/
+## 1. 🎯 Objectif du projet
 
-Partir des routes ( plan des routes ) et générer les batiments à partir des routes / bibliotèque de bruit
-Quel type de grill ou floatant ? 
-L'utilisateur doit devoir intéragir avant la génération
+Créer une **ville 3D procédurale** avec génération dynamique de routes, bâtiments et arbres, en combinant **bruit de Perlin** et logique ECS (Entity Component System) via le moteur **Bevy**.
 
+---
 
-# Projet Rust - Ville Isométrique avec Bevy
+## 2. 🧠 Présentation technique
 
-## 1. Initialisation du Projet
+- 📦 Langage : **Rust**
+- 🧱 Moteur : **Bevy (0.13)**
+- 🌐 Génération procédurale : **Noise (Perlin) + Hash-seeding**
+- 📐 Interface : **EGUI** intégrée à Bevy
+- 🎨 Matériaux : `StandardMaterial` avec textures pixelisées dynamiques
 
-### Installer Rust et Bevy
-Assurez-vous d'avoir Rust installé sur votre machine et ajoutez Bevy à votre projet.
+---
 
-## 2. Création de la Grille Hexagonale
+## 3. 🕹️ Fonctionnalités interactives
 
-### Représentation des Hexagones
-- Chaque hexagone sera divisé en 6 triangles.
-- Les coordonnées des sommets et les relations entre les triangles devront être stockées.
+| Élément           | Description |
+|------------------|-------------|
+| 🎚️ Slider `chaos` | Génère plus ou moins de variabilité dans la ville |
+| 🔍 Zoom           | Contrôle la distance de la caméra |
+| 🧊 Résolution     | Diminue la résolution de rendu sans changer la taille de la fenêtre |
+| ⬅️➡️ Caméra       | Navigation avec les flèches directionnelles |
+| 🗑️ Reset ville    | Efface les entités de la scène |
 
-### Génération de la Grille
-- Une fonction sera définie pour générer une grille d'hexagones.
-- La position de chaque hexagone devra être calculée en respectant une disposition en nid d'abeille.
+---
 
-## 3. Rendu 2D Isométrique
+## 4. 📂 Architecture du code
 
-### Transformation des Coordonnées
-- Il faudra convertir les coordonnées hexagonales en coordonnées isométriques.
-- L'affichage devra être ajusté pour une perspective correcte.
+```
+/src
+├── main.rs              # Point d’entrée
+├── camera.rs            # Contrôle et zoom caméra
+├── city.rs              # Génération des bâtiments et routes
+├── chunk.rs             # Gestion dynamique de chunks visibles
+├── components.rs        # Tous les composants ECS (tags, ressources)
+├── lighting.rs          # Setup de l’éclairage
+├── trees.rs             # Ajout d’arbres
+├── ui.rs                # Interface utilisateur EGUI
+└── graphics/
+    ├── mod.rs
+    ├── pixel_target.rs  # Création du render target basse résolution
+    └── pixel_view.rs    # Projection sur écran via un sprite plein écran
+```
 
-### Affichage avec Bevy
-- Un système devra être mis en place pour dessiner les hexagones et triangles.
-- Des entités et des composants Bevy seront utilisés pour structurer la scène.
+---
 
-## 4. Génération Procédurale de Routes
+## 5. 🧩 Gestion de la résolution (Upscaling / Pixelisation)
 
-### Utilisation du Bruit (Noise)
-- Un algorithme de bruit sera utilisé pour générer une carte de bruit afin d'influencer la disposition des routes.
-- Un algorithme sera appliqué pour relier certains triangles ou hexagones en chemins naturels.
+- Le rendu 3D est fait sur une **texture offscreen** plus petite.
+- Cette texture est ensuite **étirée (upscaled)** à la taille de la fenêtre avec un `SpriteBundle`.
+- Cela simule un **mode pixel art** sans dégrader les performances.
 
-### Placement des Routes
-- Des critères devront être définis pour déterminer où une route traverse un triangle ou un hexagone.
-- Le bruit devra être utilisé pour rendre l'aspect des routes plus naturel.
+```rust
+// Résolution dynamique
+let lowres_image = Image::new_fill(...);
+camera.viewport = Some(Viewport {
+    physical_size: UVec2::new(w, h),
+    ..
+});
+```
 
-### Sliders pour les Routes
-- Un slider sera ajouté pour ajuster l'intensité du bruit dans la génération des routes.
-- Un autre slider pourra ajuster la fréquence des chemins générés (nombre de routes par zone).
+---
 
-## 5. Génération Procédurale de Bâtiments
+## 6. 🐛 Problèmes rencontrés
 
-### Placement Basé sur les Routes
-- Les zones proches des routes devront être détectées pour y placer des bâtiments.
-- Les hauteurs et types de bâtiments devront être ajustés en fonction du terrain.
+| Problème | Résolution |
+|---------|------------|
+| `Camera3d` en double | Tag `Main3dCamera` pour ne jamais confondre les caméras |
+| `Viewport` mal dimensionné | Ajout d’un système de clamp pour éviter un viewport vide |
+| Panique `unwrap` sur chunks | Remplacé par `get_single_mut().ok()?` sécurisés |
+| `ImageSampler` obsolète | Remplacé par `image.sampler = ImageSampler::nearest()` |
+| Texture trop floue | Génération de textures `1x1` manuellement via RGBA |
 
-### Rendu des Bâtiments
-- Des sprites ou des primitives devront être définis pour représenter les bâtiments.
-- Des variations devront être appliquées pour un effet plus réaliste.
+---
 
-### Sliders pour les Bâtiments
-- Un slider permettra de contrôler la densité des bâtiments autour des routes.
-- Un autre slider ajustera la taille des bâtiments (hauteur et largeur).
+## 7. 🚀 Améliorations possibles
 
-## 6. Améliorations Futures
+- 🌳 Ajouter du LOD (Level of Detail) pour les arbres
+- 🏗️ Créer une vraie bibliothèque de bâtiments
+- 📷 Intégrer une option de capture automatique (screenshot)
+- 📏 Activer une **minimap** ou une vue top-down
+- 🌍 Génération par seed avec input de l’utilisateur
 
-- Ajouter des éléments de décor comme des arbres, des rivières, etc.
-- Optimiser les performances pour pouvoir gérer de grandes cartes.
-- Implémenter des interactions avec l'environnement telles que le zoom et le déplacement.
+---
 
-### Sliders pour les Décors
-- Un slider permettra de définir la fréquence des arbres et autres éléments de décor.
-- Un autre slider ajustera la taille des éléments décoratifs pour plus de diversité.
+## 8. 🖼️ Captures d’écran
 
-## 7. Exécution du Projet
+Place tes images dans `/assets/screenshots/` et insère-les ici :
 
-Le projet sera lancé en utilisant la commande appropriée.
+| Vue Générale | Zoom Proche | Mode Pixelisé |
+|--------------|-------------|----------------|
+| ![1](assets/screenshots/vue_generale.png) | ![2](assets/screenshots/zoom.png) | ![3](assets/screenshots/pixel.png) |
+
+---
+
+## 9. ▶️ Lancer le projet
+
+```bash
+# Étapes à suivre :
+cargo build
+cargo run
+```
+
+### 📦 Dépendances principales
+
+```toml
+[dependencies]
+bevy = "0.13"
+bevy_egui = "0.24"
+noise = "0.8"
+rand = "0.8"
+```
 
 ---
 
