@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
-use crate::components::{ChaosFactor, ZoomLevel}; // ✅ ZoomLevel ajouté ici
+use crate::components::{ChaosFactor, ZoomLevel,RenderScale}; // ✅ ZoomLevel ajouté ici
 
 /// Initialise la caméra 2D pour l’interface utilisateur
 pub fn setup_ui(mut commands: Commands) {
@@ -18,6 +18,7 @@ pub fn egui_chaos_ui(
     mut contexts: EguiContexts,
     mut chaos: ResMut<ChaosFactor>,
     mut zoom: ResMut<ZoomLevel>,
+    mut render_scale: ResMut<RenderScale>,
 ) {
     egui::Window::new("🔧 Contrôle Ville").show(contexts.ctx_mut(), |ui| {
         ui.label("Niveau de Chaos");
@@ -48,6 +49,18 @@ pub fn egui_chaos_ui(
         {
             println!("🔍 Zoom ajusté à {:.2}", zoom_value);
             zoom.0 = zoom_value;
+        }
+
+        ui.separator();
+        ui.label("Qualité de rendu");
+
+        let mut scale_value = render_scale.0;
+        if ui
+            .add(egui::Slider::new(&mut scale_value, 0.25..=1.0).text("Résolution"))
+            .changed()
+        {
+            println!("🖼️ Résolution de rendu ajustée à {:.2}", scale_value);
+            render_scale.0 = scale_value;
         }
     });
 }

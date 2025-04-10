@@ -1,16 +1,67 @@
 use bevy::prelude::*;
-use crate::components::ZoomLevel;
+use bevy::render::camera::RenderTarget;
+use bevy::render::render_resource::{
+    Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+};
+use bevy::render::texture::Image;
+use bevy::render::mesh::Mesh;
+use bevy::math::Vec3;
+use bevy::window::{Window, WindowRef};
 
-/// Initialise la caméra 3D positionnée au-dessus de la ville
-pub fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 700.0, 400.0)
-            .looking_at(Vec3::ZERO, Vec3::Y),
+use crate::components::{RenderScale, ZoomLevel};
+
+#[derive(Component)]
+pub struct RenderImage(pub Handle<Image>);
+
+/// Crée une caméra 3D qui rend dans la fenêtre principale
+pub fn setup_camera(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    render_scale: Res<RenderScale>,
+    windows: Query<&Window>,
+) {
+    let window = windows.single();
+    let (width, height) = (window.resolution.width(), window.resolution.height());
+
+    let target_width = (width * render_scale.0) as u32;
+    let target_height = (height * render_scale.0) as u32;
+
+    let image = Image {
+        data: vec![0; (target_width * target_height * 4) as usize],
+        texture_descriptor: TextureDescriptor {
+            size: Extent3d {
+                width: target_width,
+                height: target_height,
+                depth_or_array_layers: 1,
+            },
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Bgra8UnormSrgb,
+            mip_level_count: 1,
+            sample_count: 1,
+            usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING,
+            label: None,
+            view_formats: &[],
+        },
+        sampler: bevy::render::texture::ImageSampler::nearest(),
         ..default()
-    });
+    };
+
+    let image_handle = images.add(image);
+
+    commands.spawn((
+        Camera3dBundle {
+            camera: Camera {
+                target: RenderTarget::Window(WindowRef::default()), // ✅ Rendu direct fenêtre
+                ..default()
+            },
+            transform: Transform::from_xyz(0.0, 700.0, 400.0).looking_at(Vec3::ZERO, Vec3::Y),
+            ..default()
+        },
+        RenderImage(image_handle),
+    ));
 }
 
-/// Permet de déplacer la caméra avec les touches fléchées
+/// Déplacement de la caméra avec les touches fléchées
 pub fn pan_camera(
     time: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -34,14 +85,13 @@ pub fn pan_camera(
     }
 }
 
-/// Applique dynamiquement le zoom selon la valeur du slider EGUI
+/// Applique dynamiquement le zoom selon la valeur du slider UI
 pub fn apply_camera_zoom(
     zoom: Res<ZoomLevel>,
     mut query: Query<&mut Transform, With<Camera3d>>,
 ) {
     if zoom.is_changed() {
         for mut transform in &mut query {
-            // Le zoom modifie la hauteur (Y) et la profondeur (Z) de la caméra
             transform.translation.y = 700.0 / zoom.0;
             transform.translation.z = 400.0 / zoom.0;
         }

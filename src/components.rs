@@ -23,3 +23,7 @@ pub struct CityElement;
 
 #[derive(Resource, Clone)]
 pub struct ZoomLevel(pub f32); // Valeur entre 0.5 et 2.0 par exemple
+
+#[derive(Resource, Clone)]
+pub struct RenderScale(pub f32); // Valeur entre 0.25 et 1.0 par exemple
+
