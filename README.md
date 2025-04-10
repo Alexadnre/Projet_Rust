@@ -1,3 +1,6 @@
+![Vue générale](./screenshots/vue_generale.png)  
+*Vue d'ensemble de la ville générée procéduralement.*
+
 Parfait ! Voici la version finale du **README** en Markdown **avec les emojis conservés**, **les liens du sommaire fonctionnels**, et **toutes les parties explicatives détaillées** sans entrer trop dans la technique :
 
 ---
@@ -13,24 +16,26 @@ Parfait ! Voici la version finale du **README** en Markdown **avec les emojis co
 
 ## 📚 Sommaire
 
-1. [🎯 Objectif du projet](#-objectif-du-projet)  
-2. [🧩 Fonctionnalités principales](#-fonctionnalités-principales)  
-3. [🧠 Organisation du travail](#-organisation-du-travail)  
-4. [🌆 Étapes de construction du projet](#-étapes-de-construction-du-projet)  
+1. [🎯 Objectif du projet](#🎯-objectif-du-projet)  
+2. [🧩 Fonctionnalités principales](#🧩-fonctionnalités-principales)  
+3. [🧠 Organisation du travail](#🧠-organisation-du-travail)  
+4. [🌆 Étapes de construction du projet](#🌆-étapes-de-construction-du-projet)  
    - [4.1 Génération simple (taille fixe)](#41-génération-simple-taille-fixe)  
    - [4.2 Génération procédurale avec bruit](#42-génération-procédurale-avec-bruit)  
    - [4.3 Génération par chunks](#43-génération-par-chunks)  
-5. [👤 Interactions utilisateur](#-interactions-utilisateur)  
+5. [👤 Interactions utilisateur](#👤-interactions-utilisateur)  
    - [5.1 Caméra](#51-caméra)  
    - [5.2 Interface graphique](#52-interface-graphique)  
-6. [🧠 Problèmes rencontrés et solutions](#-problèmes-rencontrés-et-solutions)  
+6. [🧠 Problèmes rencontrés et solutions](#🧠-problèmes-rencontrés-et-solutions)  
    - [6.1 Gestion de la caméra](#61-gestion-de-la-caméra)  
    - [6.2 Chunking et performance](#62-chunking-et-performance)  
    - [6.3 Interface utilisateur (EGUI)](#63-interface-utilisateur-egui)  
    - [6.4 Downscaling graphique](#64-downscaling-graphique)  
-7. [📷 Captures d’écran](#-captures-décran)  
-8. [🚀 Exécution du projet](#-exécution-du-projet)  
-9. [📌 Conclusion](#-conclusion)
+7. [📷 Captures d’écran](#📷-captures-décran)  
+8. [🚀 Exécution du projet](#🚀-exécution-du-projet)  
+   - [Prérequis](#prérequis)  
+   - [Étapes](#étapes)  
+9. [📌 Conclusion](#📌-conclusion)
 
 ---
 
@@ -133,26 +138,45 @@ Utilisation d’**EGUI via `bevy_egui`** :
 
 ## 📷 Captures d’écran
 
-À placer dans un dossier `/screenshots` :
+### Qualité de rendu
+| Aucune réduction graphique             | Moyenne réduction graphique            | Forte réduction graphique             |
+|----------------------------------------|-----------------------------------------|----------------------------------------|
+| ![Aucune réduction graphique](./screenshots/high_res.png) | ![Moyenne réduction graphique](./screenshots/mid_res.png) | ![Forte réduction graphique](./screenshots/low_res.png) |
 
-- ![Vue générale](./screenshots/vue_generale.png)
-- ![Zoom et chaos](./screenshots/zoom_chaos.png)
-- ![Interface EGUI](./screenshots/interface.png)
+### Zoom
+| Vue éloignée                          | Vue rapprochée                         |
+|---------------------------------------|----------------------------------------|
+| ![Zoom extérieur](./screenshots/zoom_out.png) | ![Zoom intérieur](./screenshots/zoom_in.png) |
+
+### Niveau de chaos
+| Faible chaos                          | Fort chaos                             |
+|---------------------------------------|----------------------------------------|
+| ![Faible chaos](./screenshots/low_chaos.png) | ![Fort chaos](./screenshots/high_chaos.png) |
 
 ---
 
 ## 🚀 Exécution du projet
 
-1. Installer Rust :
+### Prérequis
+
+Avant de commencer, assurez-vous d'avoir les éléments suivants installés sur votre machine :
+- [Rust](https://www.rust-lang.org/tools/install) (version stable)
+- Git pour cloner le dépôt
+
+### Étapes
+
+1. **Installer Rust** :
    ```bash
    rustup install stable
    ```
-2. Cloner ce dépôt :
+
+2. **Cloner ce dépôt** :
    ```bash
    git clone <URL_DU_DEPOT>
    cd Projet_Rust
    ```
-3. Lancer :
+
+3. **Lancer le projet** :
    ```bash
    cargo run
    ```
